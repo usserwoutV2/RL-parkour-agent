@@ -1,5 +1,5 @@
 ./node_modules
-./examples/minecraft/node_modules
+./examples/minecraft/node_modules/**
 ./examples/minecraft/__pycache__
 ./logs
 .DS_Store
