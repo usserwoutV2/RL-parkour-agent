@@ -1,0 +1,22 @@
+{
+  "name": "parkout_ai_bot",
+  "version": "1.0.0",
+  "description": "Project for AI",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "minecraft": "npx ts-node ./examples/minecraft/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.ugent.be/wverdyck/AI-project.git"
+  },
+  "keywords": [
+    "AI"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "flying-squid": "^1.5.0",
+    "mineflayer": "^4.14.0"
+  }
+}
