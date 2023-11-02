@@ -13,7 +13,7 @@ BOT_AMOUNT = 20
 ACTION_TIME = 0.25 # seconds
 MAX_ACTION_COUNT = 30
 START_POS = {"x":0.5, "y":5,"z":0.5}
-GOAL = {"x":0.5, "y":13,"z":0.5}
+GOAL = {"x":0.5, "y":10,"z":18.5}
 
 async def main():
     clients = []

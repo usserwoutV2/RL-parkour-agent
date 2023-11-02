@@ -4,7 +4,7 @@
   "description": "Project for AI",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "minecraft": "npx ts-node ./examples/minecraft/index.ts"
+    "start": "npx ts-node ./ts/server.ts && python3 ./main.py"
   },
   "repository": {
     "type": "git",
