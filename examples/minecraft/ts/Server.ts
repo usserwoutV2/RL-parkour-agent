@@ -33,6 +33,7 @@ async function launchServer():Promise<void>{
         'version': '1.8.9',
     })
     await once(server,"listening")
+    console.log("\x1b[1;33mCONNECT TO FOLLOWING IP: "+ server._server.socketServer._connectionKey+"\x1b[0m")
 } 
 
 launchServer().then(()=>console.log("Server launched")).catch((err)=>console.log(err))
