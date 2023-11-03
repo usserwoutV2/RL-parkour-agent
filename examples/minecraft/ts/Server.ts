@@ -1,7 +1,8 @@
 // @ts-ignore
 import MCServer from 'flying-squid'
 import {once} from "node:events";
-
+import * as dns from "dns";
+dns.setDefaultResultOrder('ipv4first')
 async function launchServer():Promise<void>{
     const server = MCServer.createMCServer({
         'motd': 'AI parkour bot testing server',
