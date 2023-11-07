@@ -40,6 +40,11 @@ class Bot:
         else:
             console.log("invalid action")
 
+# Rotate 180 degrees
+    def rotate(self):
+        self.bot.look(math.pi, 0, True)
+
+
     def backward(self):
         self.bot.clearControlStates()
         self.bot.look(math.pi, 0, True)
@@ -68,11 +73,14 @@ class Bot:
 
     def get_position(self):
         return self.bot.player.entity.position
-    
+
+    def get_position_floored(self):
+        return self.bot.player.entity.position.floored()
+
     def is_blockAt(self, x, y, z):
         return self.bot.blockAt(Vec3(x, y, z)).name != "air"
 
-    def diamonds(self):
-        pos = self.bot.player.entity.position
-        console.log(self.bot.blockAt(Vec3(pos.x, pos.y-1, pos.z)).name)
-        return self.bot.blockAt(Vec3(pos.x, pos.y-1, pos.z)).name == "diamond_block"
+    def has_reached_goal(self, goal):
+        #console.log("===>",self.bot.player.entity.position,self.bot.player.entity.position.distanceTo(g))
+        return self.bot.player.entity.position.distanceTo(goal) < 1
+

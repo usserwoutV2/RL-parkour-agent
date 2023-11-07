@@ -18,7 +18,7 @@ LR = 0.001
 ACTION_TIME = 0.25  # seconds
 MAX_ACTION_COUNT = 30
 START_POS = {"x": 0.5, "y": 5, "z": 0.5}
-GOAL = Vec3(0.5, 6, 9.5)
+GOAL = Vec3(0.5, 5, -9.5)
 
 
 class Agent:
@@ -32,9 +32,18 @@ class Agent:
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
     def get_state(self, bot):
-        pos = bot.get_position()
+        pos = bot.get_position_floored()
 
-        block_d = bot.is_blockAt(pos.x, pos.y-1, pos.z)
+        # Environment:
+        #
+        #
+        #    * * * * *
+        #  * * o * * * *
+        #  * * | * * * *
+        #    *   * * * *
+        #
+
+        block_d = bot.is_blockAt(pos.x, pos.y+1, pos.z+1) # 1
         block_uu = bot.is_blockAt(pos.x, pos.y+2, pos.z)
 
         block_dr = bot.is_blockAt(pos.x, pos.y-1, pos.z+1)
@@ -122,7 +131,6 @@ class Agent:
             # pos.y < GOAL.get("y"),  # goal up
             pos.y > GOAL.y  # goal down
             ]
-
         return np.array(state, dtype=int)
 
     def remember(self, state, action, reward, next_state, done):
@@ -170,7 +178,7 @@ def train():
     bot.join()
     sleep(3)
     bot.reset()
-
+    sleep(1)
     while True:
         # get old state
         state_old = agent.get_state(bot)
@@ -180,26 +188,30 @@ def train():
 
         # perform move and get new state
         bot.do_action(final_move)
+        print("Move: ",final_move)
+
         sleep(ACTION_TIME)
         state_new = agent.get_state(bot)
 
         action_count += 1
         # console.log(state_new)
         # console.log(action_count)
-        if bot.diamonds():
+        if bot.has_reached_goal(GOAL):
             console.log("GOAL!")
             done = True
             score = action_count
-            reward = 100 - action_count
+            reward = (MAX_ACTION_COUNT - action_count)**2 + 20;
         elif action_count > MAX_ACTION_COUNT:
             console.log("ran out of moves")
             done = True
             pos = bot.get_position()
-            score = -math.sqrt((GOAL.z-pos.z)**2 + (GOAL.y-pos.y)**2)
+            score = -(GOAL.z-pos.z)**2 + (GOAL.y-pos.y)**2
             reward = score
         else:
             done = False
-            reward = 0
+            pos = bot.get_position()
+            reward = -(GOAL.z-pos.z)**2 + (GOAL.y-pos.y)**2
+            #reward = 0
 
 
         # train short memory

@@ -1,4 +1,4 @@
-from geneticAlgorithm.Genome import Genome
+from Genome import Genome
 
 
 class Genetics:
