@@ -38,7 +38,7 @@ class Bot:
         elif action == 2:
             self.jump()
         else:
-            console.log("invalid action")    
+            console.log("invalid action")
 
     def backward(self):
         self.bot.clearControlStates()
@@ -68,3 +68,11 @@ class Bot:
 
     def get_position(self):
         return self.bot.player.entity.position
+    
+    def is_blockAt(self, x, y, z):
+        return self.bot.blockAt(Vec3(x, y, z)).name != "air"
+
+    def diamonds(self):
+        pos = self.bot.player.entity.position
+        console.log(self.bot.blockAt(Vec3(pos.x, pos.y-1, pos.z)).name)
+        return self.bot.blockAt(Vec3(pos.x, pos.y-1, pos.z)).name == "diamond_block"
