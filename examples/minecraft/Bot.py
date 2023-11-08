@@ -48,8 +48,8 @@ class Bot:
     def backward(self):
         self.bot.clearControlStates()
         self.bot.look(math.pi, 0, True)
-        self.bot.setControlState("forward", True)
-        self.bot.setControlState("sprint", True)
+        # self.bot.setControlState("forward", True)
+        # self.bot.setControlState("sprint", True)
 
     def forward(self):
         self.bot.clearControlStates()
