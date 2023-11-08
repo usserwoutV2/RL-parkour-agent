@@ -1,4 +1,3 @@
-import math
 
 import torch
 import random
@@ -37,10 +36,10 @@ class Agent:
         # Environment:
         #
         #
-        #    * * * * *
-        #  * * o * * * *
-        #  * * | * * * *
-        #    *   * * * *
+        #       *  *  *  *  *
+        #   *   *  o  1  4  5  *
+        #   *   *  |  2  3  6  *
+        #       *     7  8  9  *
         #
 
         block_d = bot.is_blockAt(pos.x, pos.y+1, pos.z+1) # 1

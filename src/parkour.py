@@ -1,4 +1,8 @@
-from pprint import pprint
+import sys
+import os
+
+current_dir = os.path.dirname(__file__)
+sys.path.insert( 0, current_dir)
 from geneticAlgorithm.Genetics import Genetics
 
 #{

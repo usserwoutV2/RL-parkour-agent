@@ -4,10 +4,8 @@ import sys
 import os
 
 current_dir = os.path.dirname(__file__)
-sys.path.insert(1, os.path.join(current_dir, "../../src"))
-
-from parkour import parkour
-
+sys.path.append("../..")
+from src.parkour import parkour
 
 BOT_AMOUNT = 20
 ACTION_TIME = 0.25 # seconds
@@ -33,11 +31,6 @@ async def main():
      
     while True:
         await loop.create_task(doAction())
-        
-   
-   
-
-    
 
 asyncio.run(main())
 
