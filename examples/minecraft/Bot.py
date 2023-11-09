@@ -1,16 +1,19 @@
 from javascript import require, console, On
 import math
+import numpy as np
 mineflayer = require("mineflayer", "latest")
 Vec3 = require("vec3").Vec3
 
 
 class Bot:
+
     def __init__(self,username:str, host:str, pos):
         self.host = host
         self.username = username
         self.pos = pos
         self.actionCount = 3 # forward, backward, jump
         self.active = True # if false, the bot will not do anything (eg when bot died)
+
 
 
     def join(self):
@@ -29,8 +32,7 @@ class Bot:
     def do_action(self,action:int):
         if not self.active:
             print("bot died, cannot do action")
-            return 
-        
+            return
         if action == 0:
             self.forward()
         elif action == 1:
@@ -47,9 +49,12 @@ class Bot:
 
     def backward(self):
         self.bot.clearControlStates()
+        #if(self.get_rotation() == 1):
         self.bot.look(math.pi, 0, True)
-        # self.bot.setControlState("forward", True)
-        # self.bot.setControlState("sprint", True)
+        #else:
+        #    self.bot.look(0, 0, True)
+        self.bot.setControlState("forward", True)
+        self.bot.setControlState("sprint", True)
 
     def forward(self):
         self.bot.clearControlStates()
@@ -81,6 +86,12 @@ class Bot:
         return self.bot.blockAt(Vec3(x, y, z)).name != "air"
 
     def has_reached_goal(self, goal):
-        #console.log("===>",self.bot.player.entity.position,self.bot.player.entity.position.distanceTo(g))
-        return self.bot.player.entity.position.distanceTo(goal) < 1
+        #console.log("===>",self.bot.player.entity.position.distanceTo(goal))
+        return self.bot.player.entity.position.distanceTo(goal) <= 1
+
+    # 1 -> bot goes to positive z
+    # -1 -> bot goes to negative z
+    def get_rotation(self):
+        return 1 if np.floor(self.bot.player.entity.yaw) == 0 else -1
+
 

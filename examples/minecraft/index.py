@@ -2,6 +2,7 @@ import asyncio
 from Bot import Bot
 import sys
 import os
+import json
 
 current_dir = os.path.dirname(__file__)
 sys.path.append("../..")
@@ -10,8 +11,13 @@ from src.parkour import parkour
 BOT_AMOUNT = 20
 ACTION_TIME = 0.25 # seconds
 MAX_ACTION_COUNT = 30
-START_POS = {"x":0.5, "y":5,"z":0.5}
-GOAL = {"x":0.5, "y":10,"z":18.5}
+SELECTED_MAP = "short_parkour" # Select the map you want to complete (see keys of parkour_maps.json)
+
+f = open('./parkour_maps.json')
+maps = json.load(f)
+
+START_POS = maps[SELECTED_MAP]["start"]
+GOAL = maps[SELECTED_MAP]["goal"]
 
 async def main():
     clients = []

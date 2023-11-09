@@ -1,5 +1,6 @@
 import os
 import sys
+from src.helper import plot
 
 current_dir = os.path.dirname(__file__)
 sys.path.insert( 0, current_dir)
@@ -7,13 +8,19 @@ from Genome import Genome
 
 
 class Genetics:
+
+
+
   def __init__(self,options:dict):
     self.genomes = []
     self.counter = 0
     self.generations = 0
+    self.means = list()
+    self.averages = list()
+    self.tot_means = 0
     self.mutation_rate = options.get("mutation_rate",0.05)
     self.clients = options["clients"]
-    for client in self.clients :
+    for client in self.clients:
       self.genomes.append(Genome(client, options["maxActionCount"], options["goal"]))
       
     self.maxActionCount = options["maxActionCount"]
@@ -29,12 +36,25 @@ class Genetics:
       self.reset()
       
   def end_generation(self):
+
     # sort genomes by fitness
     self.genomes.sort(key=lambda g: g.fitness())
     for i in range(len(self.genomes)):
       print(f"{self.genomes[i].client.username}: {self.genomes[i].fitness()}")
     # kill bottom half
     self.genomes = self.genomes[:len(self.genomes)//2]
+
+    avg = 0
+    for genome in self.genomes:
+      avg += genome.fitness()
+    avg /= len(self.genomes)
+    self.averages.append(avg)
+    self.tot_means += avg
+
+    self.means.append(self.tot_means / (self.generations+1))
+    plot(self.averages, self.means)
+
+
     # breed top half
     for i in range(len(self.genomes)):
       self.genomes.append(self.genomes[i] + self.genomes[i+1])

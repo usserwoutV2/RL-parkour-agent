@@ -10,15 +10,23 @@ from model import Linear_QNet, QTrainer
 from helper import plot
 from Bot import Bot, Vec3
 from time import sleep
+import json
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
 LR = 0.001
 ACTION_TIME = 0.25  # seconds
 MAX_ACTION_COUNT = 30
-START_POS = {"x": 0.5, "y": 5, "z": 0.5}
-GOAL = Vec3(0.5, 5, -9.5)
+SELECTED_MAP = "very_easy" # Select the map you want to complete (see keys of parkour_maps.json)
 
+
+f = open('./parkour_maps.json')
+maps = json.load(f)
+
+START_POS = maps[SELECTED_MAP]["start"]
+g = maps[SELECTED_MAP]["goal"]
+GOAL = Vec3(g["x"], g["y"], g["z"])
+print(GOAL)
 
 class Agent:
 
@@ -27,108 +35,100 @@ class Agent:
         self.epsilon = 0  # randomness
         self.gamma = 0.9  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
-        self.model = Linear_QNet(11, 256, 3)
+        self.model = Linear_QNet(4, 256, 3)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
     def get_state(self, bot):
         pos = bot.get_position_floored()
+        r = bot.get_rotation()
 
         # Environment:
         #
         #
-        #       *  *  *  *  *
-        #   *   *  o  1  4  5  *
-        #   *   *  |  2  3  6  *
-        #       *     7  8  9  *
+        #       20  16 17 18 19
+        #   21  13 o  1  4  5  10
+        #   22  14 |  2  3  6  11
+        #       15    7  8  9  12
         #
 
-        block_d = bot.is_blockAt(pos.x, pos.y+1, pos.z+1) # 1
-        block_uu = bot.is_blockAt(pos.x, pos.y+2, pos.z)
+        block_d = bot.is_blockAt(pos.x, pos.y+1, pos.z + r) # 1
+        block_uu = bot.is_blockAt(pos.x, pos.y, pos.z + r) # 2
 
-        block_dr = bot.is_blockAt(pos.x, pos.y-1, pos.z+1)
-        block_drr = bot.is_blockAt(pos.x, pos.y-1, pos.z+2)
-        block_drrr = bot.is_blockAt(pos.x, pos.y-1, pos.z+3)
-        block_drrrr = bot.is_blockAt(pos.x, pos.y-1, pos.z+4)
+        '''
+        block_dr = bot.is_blockAt(pos.x, pos.y, pos.z+r*2) # 3
+        block_drr = bot.is_blockAt(pos.x, pos.y+1, pos.z+2*r) # 4
+        block_drrr = bot.is_blockAt(pos.x, pos.y+1, pos.z+3*r) # 5
+        block_drrrr = bot.is_blockAt(pos.x, pos.y, pos.z+3*r) # 6
 
-        block_dl = bot.is_blockAt(pos.x, pos.y-1, pos.z-1)
-        block_dll = bot.is_blockAt(pos.x, pos.y-1, pos.z-2)
-        block_dlll = bot.is_blockAt(pos.x, pos.y-1, pos.z-3)
-        block_dllll = bot.is_blockAt(pos.x, pos.y-1, pos.z-4)
+        block_dl = bot.is_blockAt(pos.x, pos.y-1, pos.z+r) # 7
+        block_dll = bot.is_blockAt(pos.x, pos.y-1, pos.z-2*r) # 8
+        block_dlll = bot.is_blockAt(pos.x, pos.y-1, pos.z-3*r) # 9
+        block_dllll = bot.is_blockAt(pos.x, pos.y+1, pos.z-4*r) # 10
 
-        block_r = bot.is_blockAt(pos.x, pos.y, pos.z+1)
-        block_rr = bot.is_blockAt(pos.x, pos.y, pos.z+2)
-        block_rrr = bot.is_blockAt(pos.x, pos.y, pos.z+3)
-        block_rrrr = bot.is_blockAt(pos.x, pos.y, pos.z+4)
+        block_r = bot.is_blockAt(pos.x, pos.y, pos.z+4*r) # 11
+        block_rr = bot.is_blockAt(pos.x, pos.y-1, pos.z+2*r) # 12
+        block_rrr = bot.is_blockAt(pos.x, pos.y+1, pos.z-r) # 13
+        block_rrrr = bot.is_blockAt(pos.x, pos.y, pos.z-r) # 14
 
-        block_l = bot.is_blockAt(pos.x, pos.y, pos.z-1)
-        block_ll = bot.is_blockAt(pos.x, pos.y, pos.z-2)
-        block_lll = bot.is_blockAt(pos.x, pos.y, pos.z-3)
-        block_llll = bot.is_blockAt(pos.x, pos.y, pos.z-4)
+        block_l = bot.is_blockAt(pos.x, pos.y-1, pos.z-r) # 15
+        block_ll = bot.is_blockAt(pos.x, pos.y+2, pos.z) # 16
+        block_lll = bot.is_blockAt(pos.x, pos.y+2, pos.z+r) # 17
+        block_llll = bot.is_blockAt(pos.x, pos.y+2, pos.z+r*2) # 18
 
-        block_ur = bot.is_blockAt(pos.x, pos.y+1, pos.z+1)
-        block_urr = bot.is_blockAt(pos.x, pos.y+1, pos.z+2)
-        block_urrr = bot.is_blockAt(pos.x, pos.y+1, pos.z+3)
-        block_urrrr = bot.is_blockAt(pos.x, pos.y+1, pos.z+4)
+        block_ur = bot.is_blockAt(pos.x, pos.y+2, pos.z+r*3) # 19
+        block_urr = bot.is_blockAt(pos.x, pos.y+2, pos.z-r) # 20
+        block_urrr = bot.is_blockAt(pos.x, pos.y+1, pos.z-2*r) # 21
+        block_urrrr = bot.is_blockAt(pos.x, pos.y, pos.z-2*r) # 22
 
-        block_ul = bot.is_blockAt(pos.x, pos.y+1, pos.z-1)
-        block_ull = bot.is_blockAt(pos.x, pos.y+1, pos.z-2)
-        block_ulll = bot.is_blockAt(pos.x, pos.y+1, pos.z-3)
-        block_ullll = bot.is_blockAt(pos.x, pos.y+1, pos.z-4)
+        #block_ul = bot.is_blockAt(pos.x, pos.y+1, pos.z-1)
+        #block_ull = bot.is_blockAt(pos.x, pos.y+1, pos.z-2)
+        #block_ulll = bot.is_blockAt(pos.x, pos.y+1, pos.z-3)
+        #block_ullll = bot.is_blockAt(pos.x, pos.y+1, pos.z-4)
 
-        block_uur = bot.is_blockAt(pos.x, pos.y+2, pos.z+1)
-        block_uurr = bot.is_blockAt(pos.x, pos.y+2, pos.z+2)
-        block_uurrr = bot.is_blockAt(pos.x, pos.y+2, pos.z+3)
+        #block_uur = bot.is_blockAt(pos.x, pos.y+2, pos.z+1)
+        #block_uurr = bot.is_blockAt(pos.x, pos.y+2, pos.z+2)
+        #block_uurrr = bot.is_blockAt(pos.x, pos.y+2, pos.z+3)
 
-        block_uul = bot.is_blockAt(pos.x, pos.y+2, pos.z-1)
-        block_uull = bot.is_blockAt(pos.x, pos.y+2, pos.z-2)
-        block_uulll = bot.is_blockAt(pos.x, pos.y+2, pos.z-3)
+        #block_uul = bot.is_blockAt(pos.x, pos.y+2, pos.z-1)
+        #block_uull = bot.is_blockAt(pos.x, pos.y+2, pos.z-2)
+        #block_uulll = bot.is_blockAt(pos.x, pos.y+2, pos.z-3)
+        '''
+        '''block_dr,
+                   block_drr,
+                   block_drrr,
+                   block_drrrr,
 
+                   block_dl,
+                   block_dll,
+                   block_dlll,
+                   block_dllll,
+
+                   block_r,
+                   block_rr,
+                   block_rrr,
+                   block_rrrr,
+                   block_l,
+                   block_ll,
+                   block_lll,
+                   block_llll,
+                   block_ur,
+                   block_urr,
+                   block_urrr,
+                   block_urrrr,
+                   '''
         state = [
             block_d,
-            # block_uu,
+            block_uu,
 
-            block_dr,
-            block_drr,
-            block_drrr,
-            block_drrrr,
 
-            block_dl,
-            block_dll,
-            block_dlll,
-            block_dllll,
 
-            # block_r,
-            # block_rr,
-            # block_rrr,
-            # block_rrrr,
-            #
-            # block_l,
-            # block_ll,
-            # block_lll,
-            # block_llll,
-            #
-            # block_ur,
-            # block_urr,
-            # block_urrr,
-            # block_urrrr,
-            #
-            # block_ul,
-            # block_ull,
-            # block_ulll,
-            # block_ullll,
-            #
-            # block_uur,
-            # block_uurr,
-            # block_uurrr,
-            #
-            # block_uul,
-            # block_uull,
-            # block_uulll,
-            
+            # rotation:
+            r == 1,
+
             # goal location
-            pos.z < GOAL.z,  # goal right
+            #pos.z < GOAL["z"],  # goal right
             # pos.y < GOAL.get("y"),  # goal up
-            pos.y > GOAL.y  # goal down
+            pos.y > GOAL["y"]  # goal down
             ]
         return np.array(state, dtype=int)
 
@@ -187,11 +187,10 @@ def train():
 
         # perform move and get new state
         bot.do_action(final_move)
-        print("Move: ",final_move)
 
         sleep(ACTION_TIME)
         state_new = agent.get_state(bot)
-
+        score = 0
         action_count += 1
         # console.log(state_new)
         # console.log(action_count)
@@ -199,18 +198,18 @@ def train():
             console.log("GOAL!")
             done = True
             score = action_count
-            reward = (MAX_ACTION_COUNT - action_count)**2 + 20;
+            reward = ((MAX_ACTION_COUNT*2) - action_count)**2;
         elif action_count > MAX_ACTION_COUNT:
             console.log("ran out of moves")
             done = True
             pos = bot.get_position()
-            score = -(GOAL.z-pos.z)**2 + (GOAL.y-pos.y)**2
+            score = -((GOAL.z-pos.z)**2 + (GOAL.y-pos.y)**2)
             reward = score
         else:
             done = False
             pos = bot.get_position()
-            reward = -(GOAL.z-pos.z)**2 + (GOAL.y-pos.y)**2
-            #reward = 0
+            #reward = -((GOAL.z-pos.z)**2 + (GOAL.y-pos.y)**2)
+            reward = 0
 
 
         # train short memory
