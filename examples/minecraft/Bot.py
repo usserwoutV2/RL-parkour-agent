@@ -49,10 +49,10 @@ class Bot:
 
     def backward(self):
         self.bot.clearControlStates()
-        #if(self.get_rotation() == 1):
+        #if(self.get_rotation() == -1):
         self.bot.look(math.pi, 0, True)
-        #else:
-        #    self.bot.look(0, 0, True)
+       # else:
+       #     self.bot.look(0, 0, True)
         self.bot.setControlState("forward", True)
         self.bot.setControlState("sprint", True)
 
@@ -92,6 +92,6 @@ class Bot:
     # 1 -> bot goes to positive z
     # -1 -> bot goes to negative z
     def get_rotation(self):
-        return 1 if np.floor(self.bot.player.entity.yaw) == 0 else -1
+        return -1 if np.floor(self.bot.player.entity.yaw) == 0 else 1
 
 

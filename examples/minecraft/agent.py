@@ -1,4 +1,3 @@
-
 import torch
 import random
 import numpy as np
@@ -17,8 +16,8 @@ BATCH_SIZE = 1000
 LR = 0.001
 ACTION_TIME = 0.25  # seconds
 MAX_ACTION_COUNT = 30
-SELECTED_MAP = "very_easy" # Select the map you want to complete (see keys of parkour_maps.json)
-
+SELECTED_MAP = "easy_stairs"  # Select the map you want to complete (see keys of parkour_maps.json)
+SAVE_LAST_N_MOVES = 2
 
 f = open('./parkour_maps.json')
 maps = json.load(f)
@@ -26,7 +25,7 @@ maps = json.load(f)
 START_POS = maps[SELECTED_MAP]["start"]
 g = maps[SELECTED_MAP]["goal"]
 GOAL = Vec3(g["x"], g["y"], g["z"])
-print(GOAL)
+
 
 class Agent:
 
@@ -35,7 +34,9 @@ class Agent:
         self.epsilon = 0  # randomness
         self.gamma = 0.9  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
-        self.model = Linear_QNet(4, 256, 3)
+        self.model = Linear_QNet(4, 1 << 10, 3)
+        self.model.load() # Load the model.pth file
+
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
     def get_state(self, bot):
@@ -51,8 +52,8 @@ class Agent:
         #       15    7  8  9  12
         #
 
-        block_d = bot.is_blockAt(pos.x, pos.y+1, pos.z + r) # 1
-        block_uu = bot.is_blockAt(pos.x, pos.y, pos.z + r) # 2
+        block_d = bot.is_blockAt(pos.x, pos.y + 1, pos.z + r)  # 1
+        block_uu = bot.is_blockAt(pos.x, pos.y, pos.z + r)  # 2
 
         '''
         block_dr = bot.is_blockAt(pos.x, pos.y, pos.z+r*2) # 3
@@ -120,16 +121,16 @@ class Agent:
             block_d,
             block_uu,
 
-
-
             # rotation:
             r == 1,
 
             # goal location
-            #pos.z < GOAL["z"],  # goal right
+            # pos.z < GOAL["z"],  # goal right
             # pos.y < GOAL.get("y"),  # goal up
             pos.y > GOAL["y"]  # goal down
-            ]
+        ]
+
+        # print(state,r)
         return np.array(state, dtype=int)
 
     def remember(self, state, action, reward, next_state, done):
@@ -143,8 +144,6 @@ class Agent:
 
         states, actions, rewards, next_states, dones = zip(*mini_sample)
         self.trainer.train_step(states, actions, rewards, next_states, dones)
-        #for state, action, reward, nexrt_state, done in mini_sample:
-        #    self.trainer.train_step(state, action, reward, next_state, done)
 
     def train_short_memory(self, state, action, reward, next_state, done):
         self.trainer.train_step(state, action, reward, next_state, done)
@@ -167,18 +166,23 @@ class Agent:
 
 
 def train():
+    last_moves = deque(maxlen=SAVE_LAST_N_MOVES)
+    last_position = None
     plot_scores = []
     plot_mean_scores = []
     total_score = 0
     record = -100
     action_count = 0
+    # Load model
     agent = Agent()
+
     bot = Bot(f"bot_RL", "", START_POS)
     bot.join()
     sleep(3)
     bot.reset()
     sleep(1)
     while True:
+
         # get old state
         state_old = agent.get_state(bot)
 
@@ -192,25 +196,38 @@ def train():
         state_new = agent.get_state(bot)
         score = 0
         action_count += 1
-        # console.log(state_new)
-        # console.log(action_count)
+
         if bot.has_reached_goal(GOAL):
             console.log("GOAL!")
             done = True
             score = action_count
-            reward = ((MAX_ACTION_COUNT*2) - action_count)**2;
+            reward = 20 #((MAX_ACTION_COUNT * 2) - action_count) ** 5
         elif action_count > MAX_ACTION_COUNT:
-            console.log("ran out of moves")
             done = True
             pos = bot.get_position()
-            score = -((GOAL.z-pos.z)**2 + (GOAL.y-pos.y)**2)
+            score = -((GOAL.z - pos.z) ** 2 + (GOAL.y - pos.y) ** 2)
             reward = score
         else:
             done = False
             pos = bot.get_position()
-            #reward = -((GOAL.z-pos.z)**2 + (GOAL.y-pos.y)**2)
-            reward = 0
+            reward = -((GOAL.z - pos.z) ** 2 + (GOAL.y - pos.y) ** 2)
+            s = 0
+            average = 0
+            for i in range(len(last_moves)):
+                s += last_moves[i]
+            if s != 0:
+                average = s / len(last_moves)
 
+            last_moves.append(reward)
+
+            reward -= average
+
+            # We punish the bot if it didn't move
+            if last_position is not None and last_position.xzDistanceTo(pos) < 0.1:
+                reward -= 200
+            last_position = pos
+
+            print("Reward: ", reward)
 
         # train short memory
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
@@ -226,7 +243,7 @@ def train():
             agent.n_games += 1
             agent.train_long_memory()
 
-            if score > record:
+            if score >= record:
                 record = score
                 agent.model.save()
 
@@ -237,6 +254,8 @@ def train():
             mean_score = total_score / agent.n_games
             plot_mean_scores.append(mean_score)
             plot(plot_scores, plot_mean_scores)
+            last_moves.clear()
+            last_position = None
 
 
 if __name__ == '__main__':
