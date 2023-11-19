@@ -14,55 +14,77 @@ import json
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
 LR = 0.001
-ACTION_TIME = 0.25  # seconds
-MAX_ACTION_COUNT = 30
-SELECTED_MAP = "easy_stairs"  # Select the map you want to complete (see keys of parkour_maps.json)
+ACTION_TIME = 0.1  # seconds
+MAX_ACTION_COUNT = 30 * 2
+SELECTED_MAP = ["easy_stairs","1_block_jumps", "2_block_jumps","1_block_jumps_up","2_block_jumps_up"]  # Select the map you want to complete (see keys of parkour_maps.json)
 SAVE_LAST_N_MOVES = 2
+
+LOAD_MODEL = True  # whether to load the model from the model.pth file
 
 f = open('./parkour_maps.json')
 maps = json.load(f)
+map_index = 0
+map_fail_counter = 0
 
-START_POS = maps[SELECTED_MAP]["start"]
-g = maps[SELECTED_MAP]["goal"]
+START_POS = maps[SELECTED_MAP[map_index]]["start"]
+g = maps[SELECTED_MAP[map_index]]["goal"]
 GOAL = Vec3(g["x"], g["y"], g["z"])
+
+def next_map():
+    global map_index
+    global START_POS
+    global GOAL
+    global map_fail_counter
+    map_fail_counter = 0
+    map_index += 1
+    if map_index >= len(SELECTED_MAP):
+        map_index = 0
+    START_POS = maps[SELECTED_MAP[map_index]]["start"]
+    g = maps[SELECTED_MAP[map_index]]["goal"]
+    GOAL = Vec3(g["x"], g["y"], g["z"])
 
 
 class Agent:
 
     def __init__(self):
         self.n_games = 0
-        self.epsilon = 0  # randomness
+        # Create list with n elements and fill it with 0
+        self.epsilon = [80] * len(SELECTED_MAP) if LOAD_MODEL else [0]* len(SELECTED_MAP)  # randomness, the lower the more randomness
         self.gamma = 0.9  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
-        self.model = Linear_QNet(4, 1 << 10, 3)
-        self.model.load() # Load the model.pth file
+        self.model = Linear_QNet(12, 1 << 12, 4)  # model_1:  7 params
+        if LOAD_MODEL:
+            self.model.load()  # Load the model.pth file
 
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
     def get_state(self, bot):
         pos = bot.get_position_floored()
         r = bot.get_rotation()
+        is_on_ground = bot.is_on_ground()
 
         # Environment:
         #
         #
-        #       20  16 17 18 19
+        #       20 16 17 18 19
         #   21  13 o  1  4  5  10
         #   22  14 |  2  3  6  11
-        #       15    7  8  9  12
+        #       15 23 7  8  9  12
         #
 
         block_d = bot.is_blockAt(pos.x, pos.y + 1, pos.z + r)  # 1
         block_uu = bot.is_blockAt(pos.x, pos.y, pos.z + r)  # 2
 
-        '''
-        block_dr = bot.is_blockAt(pos.x, pos.y, pos.z+r*2) # 3
-        block_drr = bot.is_blockAt(pos.x, pos.y+1, pos.z+2*r) # 4
-        block_drrr = bot.is_blockAt(pos.x, pos.y+1, pos.z+3*r) # 5
-        block_drrrr = bot.is_blockAt(pos.x, pos.y, pos.z+3*r) # 6
+        block_dr = bot.is_blockAt(pos.x, pos.y, pos.z + r * 2)  # 3
+        block_drr = bot.is_blockAt(pos.x, pos.y + 1, pos.z + 2 * r)  # 4
+        block_dl = bot.is_blockAt(pos.x, pos.y - 1, pos.z + r)  # 7
+        block_drrr = bot.is_blockAt(pos.x, pos.y + 1, pos.z + 3 * r)  # 5
+        block_drrrr = bot.is_blockAt(pos.x, pos.y, pos.z + 3 * r)  # 6
+        block_dll = bot.is_blockAt(pos.x, pos.y - 1, pos.z - 2 * r)  # 8
+        block_u = bot.is_blockAt(pos.x, pos.y - 1, pos.z)  # 23
 
-        block_dl = bot.is_blockAt(pos.x, pos.y-1, pos.z+r) # 7
-        block_dll = bot.is_blockAt(pos.x, pos.y-1, pos.z-2*r) # 8
+        '''
+
         block_dlll = bot.is_blockAt(pos.x, pos.y-1, pos.z-3*r) # 9
         block_dllll = bot.is_blockAt(pos.x, pos.y+1, pos.z-4*r) # 10
 
@@ -94,40 +116,25 @@ class Agent:
         #block_uull = bot.is_blockAt(pos.x, pos.y+2, pos.z-2)
         #block_uulll = bot.is_blockAt(pos.x, pos.y+2, pos.z-3)
         '''
-        '''block_dr,
-                   block_drr,
-                   block_drrr,
-                   block_drrrr,
 
-                   block_dl,
-                   block_dll,
-                   block_dlll,
-                   block_dllll,
-
-                   block_r,
-                   block_rr,
-                   block_rrr,
-                   block_rrrr,
-                   block_l,
-                   block_ll,
-                   block_lll,
-                   block_llll,
-                   block_ur,
-                   block_urr,
-                   block_urrr,
-                   block_urrrr,
-                   '''
         state = [
             block_d,
             block_uu,
-
+            block_dr,
+            block_drr,
+            block_dl,
+            block_drrr,
+            block_drrrr,
+            block_dll,
+            block_u,
             # rotation:
             r == 1,
 
             # goal location
             # pos.z < GOAL["z"],  # goal right
             # pos.y < GOAL.get("y"),  # goal up
-            pos.y > GOAL["y"]  # goal down
+            pos.y > GOAL["y"],  # goal down
+            is_on_ground
         ]
 
         # print(state,r)
@@ -150,9 +157,9 @@ class Agent:
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = 80 - self.n_games
+        self.epsilon[map_index] = 80 - self.n_games
         # final_move = [0,0,0]
-        if random.randint(0, 200) < self.epsilon:
+        if random.randint(0, 200) < self.epsilon[map_index]:
             move = random.randint(0, 2)
             # final_move[move] = 1
         else:
@@ -164,6 +171,9 @@ class Agent:
         # return final_move
         return move
 
+    def set_randomness(self, randomness):
+        self.epsilon[map_index] = randomness
+
 
 def train():
     last_moves = deque(maxlen=SAVE_LAST_N_MOVES)
@@ -171,6 +181,7 @@ def train():
     plot_scores = []
     plot_mean_scores = []
     total_score = 0
+    unmoved_positions = 0  # How many times the bot didn't move in x-z direction, if it's higher than 3 we reset the bot (bcs it's most likely stuck)
     record = -100
     action_count = 0
     # Load model
@@ -179,7 +190,7 @@ def train():
     bot = Bot(f"bot_RL", "", START_POS)
     bot.join()
     sleep(3)
-    bot.reset()
+    bot.reset(START_POS)
     sleep(1)
     while True:
 
@@ -201,9 +212,15 @@ def train():
             console.log("GOAL!")
             done = True
             score = action_count
-            reward = 20 #((MAX_ACTION_COUNT * 2) - action_count) ** 5
+            next_map()  # Load next map
+            reward = ((MAX_ACTION_COUNT * 2) - action_count) ** 5
         elif action_count > MAX_ACTION_COUNT:
             done = True
+            global map_fail_counter
+            map_fail_counter += 1
+            if map_fail_counter >= 50: # To prevent the bot from getting stuck on a map, we give him 50 tries to complete it, if it fails we go to the next map
+                agent.set_randomness(0)
+                next_map()
             pos = bot.get_position()
             score = -((GOAL.z - pos.z) ** 2 + (GOAL.y - pos.y) ** 2)
             reward = score
@@ -224,10 +241,17 @@ def train():
 
             # We punish the bot if it didn't move
             if last_position is not None and last_position.xzDistanceTo(pos) < 0.1:
-                reward -= 200
+                unmoved_positions += 1
+                reward -= 100
+                if unmoved_positions == 6:
+                    bot.reset(START_POS)
+                    unmoved_positions = 0
+            else:
+                unmoved_positions = 0
             last_position = pos
 
-            print("Reward: ", reward)
+            print(f"Reward={reward}, new_move={final_move} ")
+
 
         # train short memory
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
@@ -238,12 +262,12 @@ def train():
 
         if done:
             # train long memory, plot result
-            bot.reset()
+            bot.reset(START_POS)
             action_count = 0
             agent.n_games += 1
             agent.train_long_memory()
 
-            if score >= record:
+            if agent.n_games % 15 == 0:
                 record = score
                 agent.model.save()
 

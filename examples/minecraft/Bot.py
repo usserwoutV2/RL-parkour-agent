@@ -39,6 +39,8 @@ class Bot:
             self.backward()
         elif action == 2:
             self.jump()
+        elif action == 3:
+            self.idle()
         else:
             console.log("invalid action")
 
@@ -49,16 +51,16 @@ class Bot:
 
     def backward(self):
         self.bot.clearControlStates()
-        #if(self.get_rotation() == -1):
-        self.bot.look(math.pi, 0, True)
-       # else:
-       #     self.bot.look(0, 0, True)
+        if(self.get_rotation() == -1):
+            self.bot.look(math.pi, 0, True)
+        else:
+            self.bot.look(0, 0, True)
         self.bot.setControlState("forward", True)
         self.bot.setControlState("sprint", True)
 
     def forward(self):
         self.bot.clearControlStates()
-        self.bot.look(0, 0, True)
+        #self.bot.look(0, 0, True)
         self.bot.setControlState("forward", True)
         self.bot.setControlState("sprint", True)
 
@@ -71,10 +73,13 @@ class Bot:
     def idle(self):
         self.bot.clearControlStates()
 
-    def reset(self):
+    def reset(self, pos=None):
+        if pos is None:
+            pos = self.pos
         self.bot.clearControlStates()
         self.active = True
-        self.bot.chat(f'/tp {self.username} {self.pos["x"]} {self.pos["y"]} {self.pos["z"]}')
+        self.bot.chat(f'/tp {self.username} {pos["x"]} {pos["y"]} {pos["z"]}')
+        self.bot.look(0, 0, True)
 
     def get_position(self):
         return self.bot.player.entity.position
@@ -88,6 +93,9 @@ class Bot:
     def has_reached_goal(self, goal):
         #console.log("===>",self.bot.player.entity.position.distanceTo(goal))
         return self.bot.player.entity.position.distanceTo(goal) <= 1
+
+    def is_on_ground(self):
+        return self.bot.entity.position.y - math.floor(self.bot.entity.position.y) < 0.01
 
     # 1 -> bot goes to positive z
     # -1 -> bot goes to negative z

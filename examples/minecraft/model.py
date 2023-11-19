@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import os
 import numpy as np
 
+
 class Linear_QNet(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super().__init__()
@@ -12,7 +13,7 @@ class Linear_QNet(nn.Module):
         self.linear2 = nn.Linear(hidden_size, output_size)
         self.model_folder_path = './model'
 
-    def load(self,path:str='model.pth'):
+    def load(self, path: str = 'model.pth'):
         file_name = os.path.join(self.model_folder_path, path)
         self.load_state_dict(torch.load(file_name))
 
@@ -22,7 +23,6 @@ class Linear_QNet(nn.Module):
         return x
 
     def save(self, file_name='model.pth'):
-
         if not os.path.exists(self.model_folder_path):
             os.makedirs(self.model_folder_path)
 
@@ -50,7 +50,7 @@ class QTrainer:
             next_state = torch.unsqueeze(next_state, 0)
             action = torch.unsqueeze(action, 0)
             reward = torch.unsqueeze(reward, 0)
-            done = (done, )
+            done = (done,)
 
         # 1: predicted Q values with current state
         pred = self.model(state)
@@ -61,7 +61,7 @@ class QTrainer:
             if not done[idx]:
                 Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
 
-            #target[idx][torch.argmax(action[idx]).item()] = Q_new
+            # target[idx][torch.argmax(action[idx]).item()] = Q_new
             target[idx][action[idx].item()] = Q_new
 
         # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
@@ -70,8 +70,4 @@ class QTrainer:
         self.optimizer.zero_grad()
         loss = self.criterion(target, pred)
         loss.backward()
-        print("loss: ",loss)
         self.optimizer.step()
-
-
-
