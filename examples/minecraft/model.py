@@ -70,7 +70,7 @@ class QTrainer:
         self.optimizer.zero_grad()
         loss = self.criterion(target, pred)
         loss.backward()
-
+        print("loss: ",loss)
         self.optimizer.step()
 
 
