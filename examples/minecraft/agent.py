@@ -1,3 +1,5 @@
+import math
+
 import torch
 import random
 import numpy as np
@@ -9,16 +11,17 @@ from model import Linear_QNet, QTrainer
 from helper import plot
 from Bot import Bot, Vec3
 from time import sleep
+import asyncio
 import json
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
 LR = 0.001
-ACTION_TIME = 0.1  # seconds
-MAX_ACTION_COUNT = 30 * 2
+ACTION_TIME = 0.3  # seconds
+MAX_ACTION_COUNT = 25
 SELECTED_MAP = ["easy_stairs","1_block_jumps", "2_block_jumps","1_block_jumps_up","2_block_jumps_up"]  # Select the map you want to complete (see keys of parkour_maps.json)
 SAVE_LAST_N_MOVES = 2
-
+ACTION_COUNT = 5  # Amount of actions (jump, forward, backward, short jump)
 LOAD_MODEL = True  # whether to load the model from the model.pth file
 
 f = open('./parkour_maps.json')
@@ -43,25 +46,40 @@ def next_map():
     g = maps[SELECTED_MAP[map_index]]["goal"]
     GOAL = Vec3(g["x"], g["y"], g["z"])
 
+def print_bot_view(state):
+    bot_symbols = ['O', 'I']
+    block_present = '█'
+    empty_space = ' '
+
+    # Update symbols based on the presence of blocks
+    environment = [block_present if block else empty_space for block in state]
+
+    # Prepare the visual representation
+    print(f"""
+               {bot_symbols[0]} {environment[0]} {environment[3]} {environment[4]}
+               {bot_symbols[1]} {environment[1]} {environment[2]} {environment[5]}
+               {empty_space} {environment[6]} {environment[7]} {environment[8]}
+        """)
+
 
 class Agent:
 
     def __init__(self):
         self.n_games = 0
         # Create list with n elements and fill it with 0
-        self.epsilon = [80] * len(SELECTED_MAP) if LOAD_MODEL else [0]* len(SELECTED_MAP)  # randomness, the lower the more randomness
-        self.gamma = 0.9  # discount rate
+        self.epsilon = [0] * len(SELECTED_MAP) #[80] * len(SELECTED_MAP) if LOAD_MODEL else [0] * len(SELECTED_MAP)  # randomness, the lower the more randomness
+        self.gamma = 0.2  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
-        self.model = Linear_QNet(12, 1 << 12, 4)  # model_1:  7 params
-        if LOAD_MODEL:
-            self.model.load()  # Load the model.pth file
+        self.model = Linear_QNet(11, 1 << 12, ACTION_COUNT)  # model_1:  7 params
+        #if LOAD_MODEL:
+        #    self.model.load()  # Load the model.pth file
 
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
     def get_state(self, bot):
         pos = bot.get_position_floored()
         r = bot.get_rotation()
-        is_on_ground = bot.is_on_ground()
+        # is_on_ground = bot.is_on_ground()
 
         # Environment:
         #
@@ -72,16 +90,17 @@ class Agent:
         #       15 23 7  8  9  12
         #
 
-        block_d = bot.is_blockAt(pos.x, pos.y + 1, pos.z + r)  # 1
-        block_uu = bot.is_blockAt(pos.x, pos.y, pos.z + r)  # 2
+        block_1 = bot.is_blockAt(pos.x, pos.y + 1, pos.z + r)  # 1
+        block_2 = bot.is_blockAt(pos.x, pos.y, pos.z + r)  # 2
 
-        block_dr = bot.is_blockAt(pos.x, pos.y, pos.z + r * 2)  # 3
-        block_drr = bot.is_blockAt(pos.x, pos.y + 1, pos.z + 2 * r)  # 4
-        block_dl = bot.is_blockAt(pos.x, pos.y - 1, pos.z + r)  # 7
-        block_drrr = bot.is_blockAt(pos.x, pos.y + 1, pos.z + 3 * r)  # 5
-        block_drrrr = bot.is_blockAt(pos.x, pos.y, pos.z + 3 * r)  # 6
-        block_dll = bot.is_blockAt(pos.x, pos.y - 1, pos.z - 2 * r)  # 8
-        block_u = bot.is_blockAt(pos.x, pos.y - 1, pos.z)  # 23
+        block_3 = bot.is_blockAt(pos.x, pos.y, pos.z + r * 2)  # 3
+        block_4 = bot.is_blockAt(pos.x, pos.y + 1, pos.z + 2 * r)  # 4
+        block_5 = bot.is_blockAt(pos.x, pos.y + 1, pos.z + 3 * r)  # 5
+        block_6 = bot.is_blockAt(pos.x, pos.y, pos.z + 3 * r)  # 6
+        block_7 = bot.is_blockAt(pos.x, pos.y - 1, pos.z + r)  # 7
+        block_8 = bot.is_blockAt(pos.x, pos.y - 1, pos.z - 2 * r)  # 8
+        block_9 = bot.is_blockAt(pos.x, pos.y-1, pos.z-3*r)  # 9
+        #block_u = bot.is_blockAt(pos.x, pos.y - 1, pos.z)  # 23
 
         '''
 
@@ -118,26 +137,27 @@ class Agent:
         '''
 
         state = [
-            block_d,
-            block_uu,
-            block_dr,
-            block_drr,
-            block_dl,
-            block_drrr,
-            block_drrrr,
-            block_dll,
-            block_u,
-            # rotation:
-            r == 1,
+            block_1,
+            block_2,
+            block_3,
+            block_4,
+            block_5,
+            block_6,
+            block_7,
+            block_8,
+            block_9,
+            #block_u,
+            # Whether or not the bot is looking towards to goal or not
+            1 if (pos.z >= GOAL["z"] and r == 1) or (pos.z <= GOAL["z"] and r == -1) else 0,
 
             # goal location
             # pos.z < GOAL["z"],  # goal right
             # pos.y < GOAL.get("y"),  # goal up
             pos.y > GOAL["y"],  # goal down
-            is_on_ground
+           # is_on_ground
         ]
+        #print_bot_view(state)
 
-        # print(state,r)
         return np.array(state, dtype=int)
 
     def remember(self, state, action, reward, next_state, done):
@@ -157,7 +177,7 @@ class Agent:
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon[map_index] = 80 - self.n_games
+        self.epsilon[map_index] = max(80 - self.n_games,20)
         # final_move = [0,0,0]
         if random.randint(0, 200) < self.epsilon[map_index]:
             move = random.randint(0, 2)
@@ -175,7 +195,7 @@ class Agent:
         self.epsilon[map_index] = randomness
 
 
-def train():
+async def train():
     last_moves = deque(maxlen=SAVE_LAST_N_MOVES)
     last_position = None
     plot_scores = []
@@ -187,7 +207,7 @@ def train():
     # Load model
     agent = Agent()
 
-    bot = Bot(f"bot_RL", "", START_POS)
+    bot = Bot(f"bot_RL", "", START_POS,actionCount=ACTION_COUNT)
     bot.join()
     sleep(3)
     bot.reset(START_POS)
@@ -201,9 +221,10 @@ def train():
         final_move = agent.get_action(state_old)
 
         # perform move and get new state
-        bot.do_action(final_move)
 
-        sleep(ACTION_TIME)
+        await asyncio.sleep(0.2)
+        await bot.await_do_action(final_move,min_time=ACTION_TIME)
+
         state_new = agent.get_state(bot)
         score = 0
         action_count += 1
@@ -239,12 +260,15 @@ def train():
 
             reward -= average
 
+
             # We punish the bot if it didn't move
             if last_position is not None and last_position.xzDistanceTo(pos) < 0.1:
                 unmoved_positions += 1
-                reward -= 100
+                reward -= 200
                 if unmoved_positions == 6:
                     bot.reset(START_POS)
+                    # clear last moves
+                    last_moves.clear()
                     unmoved_positions = 0
             else:
                 unmoved_positions = 0
@@ -268,8 +292,10 @@ def train():
             agent.train_long_memory()
 
             if agent.n_games % 15 == 0:
-                record = score
                 agent.model.save()
+
+            if score > record:
+                record = score
 
             print('Game', agent.n_games, 'Score', score, 'Record:', record)
 
@@ -283,4 +309,5 @@ def train():
 
 
 if __name__ == '__main__':
-    train()
+    asyncio.run(train())
+
