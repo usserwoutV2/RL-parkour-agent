@@ -146,7 +146,6 @@ class Agent:
             block_7,
             block_8,
             block_9,
-            #block_u,
             # Whether or not the bot is looking towards to goal or not
             1 if (pos.z >= GOAL["z"] and r == 1) or (pos.z <= GOAL["z"] and r == -1) else 0,
 
