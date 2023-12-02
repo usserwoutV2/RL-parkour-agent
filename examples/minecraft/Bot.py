@@ -7,6 +7,8 @@ import asyncio
 createBot = require("./ts/createBot.js")
 Vec3 = require("vec3").Vec3
 
+null_vector = Vec3(0, 0, 0)
+
 
 class Bot:
 
@@ -57,24 +59,34 @@ class Bot:
             print("bot died, cannot do action")
             return
         if action == 0:  # Forward
+            self.bot.move_to_middle()
+            await asyncio.sleep(0.3)
             self.bot.setControlState("forward", True)
             self.bot.setControlState("sprint", True)
-            await asyncio.sleep(min_time)
+            await asyncio.sleep(0.25)
             self.bot.clearControlStates()
+            while self.bot.entity.velocity.z != 0 or not self.bot.entity.onGround:
+                await asyncio.sleep(0.1)  # Wait until the bot is on the ground
         elif action == 1:
             self.rotate()
             await asyncio.sleep(min_time)
             self.bot.clearControlStates()
         elif action == 2 or action == 3 or action == 4:
-            await asyncio.sleep(1)
             self.bot.move_to_middle()
+            await asyncio.sleep(0.3)
             self.bot.setControlState("forward", True)
-            if action != 2: self.bot.setControlState("sprint", True)
-            await asyncio.sleep(0.15 if action == 3 else 0.25)
-            self.jump(action != 2)
-            await asyncio.sleep(min_time * ((action-2) * 0.5 + 1))
+            if action != 2:
+                self.bot.setControlState("sprint", True)
+            await asyncio.sleep(0.10 if action == 3 else 0.25)
+            self.bot.setControlState("jump", True)
+            self.bot.setControlState("jump", False)
+            await asyncio.sleep(min_time)
+            #             await asyncio.sleep(min_time * ((action-2) * 0.5 + 1))
             self.bot.clearControlStates()
-            while not self.is_on_ground():
+            while not self.bot.entity.onGround or self.bot.entity.velocity.z != 0:
+                await asyncio.sleep(0.1)  # Wait until the bot is on the ground
+            await asyncio.sleep(0.3)
+            while not self.bot.entity.onGround or self.bot.entity.velocity.z != 0:
                 await asyncio.sleep(0.1)  # Wait until the bot is on the ground
         else:
             console.log("invalid action")
@@ -116,13 +128,18 @@ class Bot:
     def idle(self):
         self.bot.clearControlStates()
 
+
+    # Bot is dead when it stand on a redstone block
+    def is_dead(self):
+        return self.bot.isBlockBelow("redstone_block")
+
     def reset(self, pos=None):
         if pos is None:
             pos = self.pos
         self.bot.clearControlStates()
         self.active = True
         self.bot.chat(f'/tp {self.username} {pos["x"]} {pos["y"]} {pos["z"]}')
-        self.bot.look(0, 0, True)
+        self.look(True)
 
     def get_position(self):
         return self.bot.player.entity.position
@@ -141,7 +158,7 @@ class Bot:
         return self.bot.player.entity.position.distanceTo(goal) <= 1
 
     def is_on_ground(self):
-        return self.bot.entity.position.y - math.floor(self.bot.entity.position.y) < 0.01
+        return self.bot.entity.onGround
 
     # 1 -> bot goes to positive z
     # -1 -> bot goes to negative z

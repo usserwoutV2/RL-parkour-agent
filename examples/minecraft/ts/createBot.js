@@ -9,7 +9,8 @@ function plugin(bot){
         return  Math.floor(bot.player.entity.yaw) === 0 ? -1: 1
     }
 
-    bot.move_to_middle = () => {
+    bot.get_actual_position = () => {
+
         const pos = bot.player.entity.position;
         const rot = get_rotation();
         const args = {
@@ -23,6 +24,16 @@ function plugin(bot){
         if(bot.blockAt(new Vec3(args.x, args.y-1, args.z).floored()).name === 'air'){
             args.z -= rot;
         }
+        return args
+    }
+
+    bot.get_actual_position_floored =    () => {
+        const pos = bot.get_actual_position()
+        return new Vec3(pos.x, pos.y, pos.z).floored()
+    }
+
+    bot.move_to_middle = () => {
+        args = bot.get_actual_position()
 
         bot._client.write('position_look', args)
 
@@ -38,12 +49,28 @@ function plugin(bot){
     }
 
 
+    bot.isBlockBelow = (blockName) => {
+        let p = bot.player.entity.position
+        let pos2 =  bot.player.entity.position.floored()
+        const b = bot.blockAt(pos2.offset(0,-1,0))
+        if(!b) return false;
+        if (b.name === blockName && Math.abs(p.y - pos2.y) < 0.01)
+            return true
+        let pos = bot.player.entity.position.offset(0, 0, -0.2999).floored()
+        return bot.blockAt(pos.offset(0,-1,0)).name === blockName && Math.abs(p.y - pos.y) < 0.01;
+
+    }
+
+
 }
 
 
 function createBot(options) {
-    const bot = mineflayer.createBot(options);
+    let bot = mineflayer.createBot(options);
     bot.loadPlugin(plugin);
+    bot.on("end",()=> {
+        console.log("Disconnected...");
+    })
     return bot;
 }
 
