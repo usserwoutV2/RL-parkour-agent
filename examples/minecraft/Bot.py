@@ -4,7 +4,7 @@ import numpy as np
 import asyncio
 
 # mineflayer = require("mineflayer", "latest")
-createBot = require("./ts/createBot.js")
+createBot = require("./js/createBot.js")
 Vec3 = require("vec3").Vec3
 
 null_vector = Vec3(0, 0, 0)

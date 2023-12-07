@@ -20,34 +20,20 @@ BATCH_SIZE = 32
 LR = 0.001  # The learning rate could also be a factor. If it's too high, the bot might be forgetting its past knowledge too quickly to improve. If it's too low, it might not be learning fast enough. Try to adjust the learning rate to see if it has an impact.
 ACTION_TIME = 0.3  # seconds
 MAX_ACTION_COUNT = BATCH_SIZE
-SELECTED_MAP = [  "easy_stairs", "1_block_jumps", "2_block_jumps", "1_block_jumps_up",
-    "2_block_jumps_up"]  # Select the map you want to complete (see keys of parkour_maps.json)
+SELECTED_MAP = [0,1,2,3,4,5,6,7,8,9,10,11] #["random_parkour"]  # [  "easy_stairs", "1_block_jumps", "2_block_jumps", "1_block_jumps_up",
+# "2_block_jumps_up"]  # Select the map you want to complete (see keys of parkour_maps.json)
 SAVE_LAST_N_MOVES = 1
 ACTION_COUNT = 5  # Amount of actions (jump, forward, backward, short jump)
 LOAD_MODEL = False  # whether to load the model from the model.pth file
 
 f = open('./parkour_maps.json')
 maps = json.load(f)
-map_index = 0
+map_index = -1
 map_fail_counter = 0
 
-START_POS = maps[SELECTED_MAP[map_index]]["start"]
-g = maps[SELECTED_MAP[map_index]]["goal"]
+START_POS = maps[str(SELECTED_MAP[map_index])]["start"]
+g = maps[str(SELECTED_MAP[map_index])]["goal"]
 GOAL = Vec3(g["x"], g["y"], g["z"])
-
-
-def next_map():
-    global map_index
-    global START_POS
-    global GOAL
-    global map_fail_counter
-    map_fail_counter = 0
-    map_index += 1
-    if map_index >= len(SELECTED_MAP):
-        map_index = 0
-    START_POS = maps[SELECTED_MAP[map_index]]["start"]
-    g = maps[SELECTED_MAP[map_index]]["goal"]
-    GOAL = Vec3(g["x"], g["y"], g["z"])
 
 
 def print_bot_view(state):
@@ -150,7 +136,7 @@ class Agent:
             pos.y > GOAL["y"],  # goal down
             # is_on_ground
         ]
-        #print_bot_view(state)
+        # print_bot_view(state)
         return np.array(state, dtype=int)
 
     def remember(self, state, action, reward, next_state, done):
@@ -185,11 +171,33 @@ class Agent:
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
 
-        self.epsilon[map_index] = max(self.epsilon[map_index] * 0.99, 0.03)
+        self.epsilon[map_index] = max(self.epsilon[map_index] * 0.994, 0.03)
         return move
 
     def set_randomness(self, randomness):
         self.epsilon[map_index] = randomness
+
+    async def next_map(self, bot):
+        global map_index
+        global START_POS
+        global GOAL
+        global map_fail_counter
+        map_fail_counter = 0
+        map_index += 1
+        if map_index >= len(SELECTED_MAP):
+            map_index = 0
+        START_POS = maps[str(SELECTED_MAP[map_index])]["start"]
+        if SELECTED_MAP[map_index] == "random_parkour":
+            GOAL = bot.bot.createParkourMap(10, START_POS).offset(0.5,1,0.5)
+            print(f"New goal: {GOAL}")
+            await asyncio.sleep(1)
+        elif isinstance(SELECTED_MAP[map_index],int):
+            GOAL = bot.bot.createParkourMap(10, START_POS,SELECTED_MAP[map_index]).offset(0.5,1,0.5)
+            print(f"New goal: {GOAL}")
+            await asyncio.sleep(1)
+        else:
+            g = maps[SELECTED_MAP[map_index]]["goal"]
+            GOAL = Vec3(g["x"], g["y"], g["z"])
 
 
 async def train():
@@ -212,6 +220,7 @@ async def train():
     bot.reset(START_POS)  # goto start position
     await asyncio.sleep(1)
     bot.look(True)
+    await agent.next_map(bot)  # Load next map
     while True:
 
         # get old state
@@ -233,7 +242,7 @@ async def train():
             console.log(f"GOAL! Need to complete {6 - map_compeleted} more times to go to the next map.")
             done = True
             if map_compeleted > 1:
-                next_map()  # Load next map
+                await agent.next_map(bot)  # Load next map
                 map_compeleted = 0
             reward = ((MAX_ACTION_COUNT * 2) - action_count)
             score = -reward * 10
@@ -247,9 +256,9 @@ async def train():
             done = True
             global map_fail_counter
             map_fail_counter += 1
-            if map_fail_counter >= 100:  # To prevent the bot from getting stuck on a map, we give him 50 tries to complete it, if it fails we go to the next map
+            if map_fail_counter >= 100:  # To prevent the bot from getting stuck on a map, we give him 100 tries to complete it, if it fails we go to the next map
                 agent.set_randomness(0)
-                next_map()
+                await agent.next_map(bot)
             pos = bot.get_position()
             reward = -((GOAL.z - pos.z) ** 2 + (GOAL.y - pos.y) ** 2)
             score = -reward * 10

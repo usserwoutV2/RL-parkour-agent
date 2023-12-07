@@ -7,15 +7,15 @@
     "strict": true,
     "sourceMap": true,
     "skipLibCheck": true,
-    "noEmit": true,
     "baseUrl": "./ts",
+    "rootDir": "./ts",
     "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "useDefineForClassFields": true,
     "experimentalDecorators": true,
-    "outDir": "./js"
+    "outDir": "./js",
   },
   "exclude": ["node_modules"]
 }

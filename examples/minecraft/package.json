@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx ts-node ./ts/server.ts",
-    "bots": "python3 ./index.py"
+    "bots": "python3 ./index.py",
+    "compile": "npx tsc"
   },
   "repository": {
     "type": "git",
