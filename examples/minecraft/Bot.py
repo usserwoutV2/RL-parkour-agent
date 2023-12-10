@@ -1,9 +1,8 @@
-from javascript import require, console, On
+from javascript import require, console, On, AsyncTask, once
 import math
 import numpy as np
 import asyncio
 
-# mineflayer = require("mineflayer", "latest")
 createBot = require("./js/createBot.js")
 Vec3 = require("vec3").Vec3
 
@@ -60,27 +59,35 @@ class Bot:
             return
         if action == 0:  # Forward
             self.bot.move_to_middle()
-            await asyncio.sleep(0.3)
+            #await asyncio.sleep(0.3)
+            self.wait_for_ticks(6)
             self.bot.setControlState("forward", True)
             self.bot.setControlState("sprint", True)
-            await asyncio.sleep(0.25)
+            self.wait_for_ticks(5)
+            #await asyncio.sleep(0.25)
             self.bot.clearControlStates()
             while self.bot.entity.velocity.z != 0 or not self.bot.entity.onGround:
-                await asyncio.sleep(0.1)  # Wait until the bot is on the ground
+                self.wait_for_ticks(2)
+                #await asyncio.sleep(0.1)  # Wait until the bot is on the ground
         elif action == 1:
-            self.rotate()
-            await asyncio.sleep(min_time)
+            self.bot.move_to_middle()
+            self.wait_for_ticks(6)
             self.bot.clearControlStates()
         elif action == 2 or action == 3 or action == 4:
             self.bot.move_to_middle()
-            await asyncio.sleep(0.3)
+            self.wait_for_ticks(6)
+            # await asyncio.sleep(0.3)
             self.bot.setControlState("forward", True)
             if action != 2:
                 self.bot.setControlState("sprint", True)
-            await asyncio.sleep(0.10 if action == 3 else 0.25)
+
+            self.wait_for_ticks(1 if action != 4 else 4)
+
+            # await self.bot.waitForTicks(2 if action == 2 else 4)
+            # await asyncio.sleep(0.10 if action == 3 else 0.20)
             self.bot.setControlState("jump", True)
             self.bot.setControlState("jump", False)
-            await asyncio.sleep(min_time)
+            self.wait_for_ticks(6)
             #             await asyncio.sleep(min_time * ((action-2) * 0.5 + 1))
             self.bot.clearControlStates()
             while not self.bot.entity.onGround or self.bot.entity.velocity.z != 0:
@@ -128,7 +135,6 @@ class Bot:
     def idle(self):
         self.bot.clearControlStates()
 
-
     # Bot is dead when it stand on a redstone block
     def is_dead(self):
         return self.bot.isBlockBelow("redstone_block")
@@ -164,3 +170,9 @@ class Bot:
     # -1 -> bot goes to negative z
     def get_rotation(self):
         return -1 if np.floor(self.bot.player.entity.yaw) == 0 else 1
+
+    def wait_for_ticks(self, ticks):
+        waitId = np.random.randint(0, 9999999)
+        self.bot.wait(ticks, waitId)
+        once(self.bot, "wait_complete")
+        self.bot.ackWait(waitId)

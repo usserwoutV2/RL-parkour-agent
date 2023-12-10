@@ -40,8 +40,8 @@ async def main():
             await asyncio.sleep(1)
             bot.look(True)
             for i in range(2, 5):
-                await bot.await_do_action(0)
-                await asyncio.sleep(1)
+                await bot.await_do_action(i)
+                await asyncio.sleep(0.3)
                 if goal_reached(bot):
                     print(f"reached ({i})")
                     break

@@ -12,6 +12,8 @@ type BotExtentions = {
     isBlockBelow: (blockName:string) => boolean,
     createParkourMap: (jumps:number,startPos:any) => Vec3,
     createTypeParkourMap: (jumps:number,startPos:any, jumpType:number) => Vec3,
+    wait: (ticks:number,id:number) => void,
+    ackWait: (id:number) => void,
 }
 
 function plugin(bot:Bot & BotExtentions){
@@ -31,9 +33,11 @@ function plugin(bot:Bot & BotExtentions){
             "yaw":  toNotchianYaw(rot === -1? 0 : Math.PI),
             "pitch": 0,
         }
-
-        if(bot.blockAt(new Vec3(args.x, args.y-1, args.z).floored())?.name === 'air'){
-            args.z -= rot;
+    const v = new Vec3(args.x, args.y-1, args.z).floored()
+        if(bot.blockAt(v)?.name === 'air'){
+            v.z -= rot;
+            if (bot.blockAt(v)?.name === 'air')  args.z += rot;
+            else args.z -= rot;
         }
         return args
     }
@@ -41,6 +45,25 @@ function plugin(bot:Bot & BotExtentions){
     bot.get_actual_position_floored =    () => {
         const pos = bot.get_actual_position()
         return new Vec3(pos.x, pos.y, pos.z).floored()
+    }
+
+    let acked_time:Record<number, NodeJS.Timeout> = {
+
+    }
+
+    bot.wait = (ticks:number,id:number) => {
+        bot.waitForTicks(ticks).then(()=> {
+            acked_time[id] = setInterval(() => {
+                // @ts-ignore
+                 bot.emit("wait_complete")
+            }, 50)
+            // @ts-ignore
+            bot.emit("wait_complete")
+        })
+    }
+
+    bot.ackWait = (id:number) => {
+        clearInterval(acked_time[id])
     }
 
     bot.move_to_middle = () => {

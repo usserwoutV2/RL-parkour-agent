@@ -4,7 +4,7 @@ import {once} from "node:events";
 import * as dns from "dns";
 import {Vec3} from "vec3";
 import blockCoordinates from "./createRandomMap";
-dns.setDefaultResultOrder('ipv4first')
+//dns.setDefaultResultOrder('ipv4first')
 async function launchServer():Promise<void>{
     const server = MCServer.createMCServer({
         'motd': 'AI parkour bot testing server',

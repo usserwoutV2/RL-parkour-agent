@@ -44,7 +44,7 @@ function jumpType(jump) {
     }
 }
 function addJump(startPos, type = null) {
-    let jump = type === null ? Math.floor(Math.random() * (JUMP_TYPE.JUMP_5_DOWN + 1)) : type;
+    let jump = type === null ? Math.floor(Math.random() * (JUMP_TYPE.JUMP_4 + 1)) : type;
     let jumpOffset = jumpType(jump);
     return startPos.offset(0, jumpOffset[1], -jumpOffset[0]);
 }

@@ -1,8 +1,5 @@
 import {Vec3} from "vec3";
 
-// @ts-ignore
-import MCServer from 'flying-squid'
-
 enum JUMP_TYPE {
     JUMP_1,
     JUMP_1_UP,
@@ -42,14 +39,14 @@ function jumpType(jump:JUMP_TYPE){
         case JUMP_TYPE.JUMP_4_DOWN:
             return [4,-1]
         case JUMP_TYPE.JUMP_4:
-            return [4,0]
+           return [4,0]
         case JUMP_TYPE.JUMP_5_DOWN:
             return [5,-1]
     }
 }
 
 function addJump(startPos:Vec3,type:null | JUMP_TYPE = null ) {
-    let jump:JUMP_TYPE = type === null ? Math.floor(Math.random() * (JUMP_TYPE.JUMP_5_DOWN+1)): type
+    let jump:JUMP_TYPE = type === null ? Math.floor(Math.random() * (JUMP_TYPE.JUMP_4+1)): type
     let jumpOffset = jumpType(jump)
     return startPos.offset(0,jumpOffset[1], -jumpOffset[0])
 }

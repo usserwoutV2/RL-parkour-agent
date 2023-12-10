@@ -20,7 +20,7 @@ BATCH_SIZE = 32
 LR = 0.001  # The learning rate could also be a factor. If it's too high, the bot might be forgetting its past knowledge too quickly to improve. If it's too low, it might not be learning fast enough. Try to adjust the learning rate to see if it has an impact.
 ACTION_TIME = 0.3  # seconds
 MAX_ACTION_COUNT = BATCH_SIZE
-SELECTED_MAP = [0,1,2,3,4,5,6,7,8,9,10,11] #["random_parkour"]  # [  "easy_stairs", "1_block_jumps", "2_block_jumps", "1_block_jumps_up",
+SELECTED_MAP = ["random_parkour"] #["random_parkour"]  # [  "easy_stairs", "1_block_jumps", "2_block_jumps", "1_block_jumps_up",
 # "2_block_jumps_up"]  # Select the map you want to complete (see keys of parkour_maps.json)
 SAVE_LAST_N_MOVES = 1
 ACTION_COUNT = 5  # Amount of actions (jump, forward, backward, short jump)
@@ -59,9 +59,9 @@ class Agent:
         # Create list with n elements and fill it with 0
         self.epsilon = [0.8] * len(
             SELECTED_MAP)  # [80] * len(SELECTED_MAP) if LOAD_MODEL else [0] * len(SELECTED_MAP)  # randomness, the lower the more randomness
-        self.gamma = 0.90  # discount rate. The value of gamma determines how far into the future the bot should "care" about. If it's too low the bot will mostly consider immediate rewards and thus might not learn beneficial long-term strategies. Try increasing gamma to see if that allows the bot to learn more complex strategies.
+        self.gamma = 0.80  # discount rate. The value of gamma determines how far into the future the bot should "care" about. If it's too low the bot will mostly consider immediate rewards and thus might not learn beneficial long-term strategies. Try increasing gamma to see if that allows the bot to learn more complex strategies.
         # self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
-        self.model = Linear_QNet(13, 64, ACTION_COUNT)  #
+        self.model = Linear_QNet(17, 256, ACTION_COUNT)  #
         self.replay_memory = ExperienceReplay(MAX_MEMORY)  # Init ExperienceReplay
         if LOAD_MODEL:
             self.model.load()  # Load the model.pth file
@@ -81,6 +81,7 @@ class Agent:
         #   21  13 o  1  4  5  10
         #   22  14 |  2  3  6  11
         #       15 23 7  8  9  12
+        #             24 25 26 27
         #
 
         block_1 = bot.is_blockAt(pos.x, pos.y + 1, pos.z + r)  # 1
@@ -95,6 +96,10 @@ class Agent:
         block_9 = bot.is_blockAt(pos.x, pos.y - 1, pos.z - 3 * r)  # 9
         block_11 = bot.is_blockAt(pos.x, pos.y, pos.z + 4 * r)  # 11
         block_12 = bot.is_blockAt(pos.x, pos.y - 1, pos.z + 4 * r)  # 12
+        block_24 = bot.is_blockAt(pos.x, pos.y - 2, pos.z + 1 * r)  # 24
+        block_25 = bot.is_blockAt(pos.x, pos.y - 2, pos.z + 2 * r)  # 25
+        block_26 = bot.is_blockAt(pos.x, pos.y - 2, pos.z + 3 * r)  # 26
+        block_27 = bot.is_blockAt(pos.x, pos.y - 2, pos.z + 4 * r)  # 27
 
         '''
 
@@ -127,6 +132,10 @@ class Agent:
             block_9,
             block_11,
             block_12,
+            block_24,
+            block_25,
+            block_26,
+            block_27,
             # Whether or not the bot is looking towards to goal or not
             1 if (pos.z >= GOAL["z"] and r == 1) or (pos.z <= GOAL["z"] and r == -1) else 0,
 
@@ -204,7 +213,7 @@ async def train():
     last_moves = deque(maxlen=SAVE_LAST_N_MOVES)
     last_position = None
     plot_scores = []
-    plot_mean_scores = []
+    plot_mean_scores = deque(maxlen=25)
     total_score = 0
     unmoved_positions = 0  # How many times the bot didn't move in x-z direction, if it's higher than 3 we reset the bot (bcs it's most likely stuck)
     record = -100
@@ -212,7 +221,7 @@ async def train():
 
     # Load model
     agent = Agent()
-    map_compeleted = 0  # How many times the bot completed the current map
+    map_completed = 0  # How many times the bot completed the current map
     bot = Bot(f"bot_RL", "", START_POS, actionCount=ACTION_COUNT)
     reward_array = []
     bot.join()
@@ -235,33 +244,28 @@ async def train():
         await asyncio.sleep(0.2)
         state_new = agent.get_state(bot)
         action_count += 1
-        score = 0
+        global map_fail_counter
 
         if bot.has_reached_goal(GOAL):
-            map_compeleted += 1
-            console.log(f"GOAL! Need to complete {6 - map_compeleted} more times to go to the next map.")
+            map_completed += 1
+            console.log(f"GOAL! Need to complete {6 - map_completed} more times to go to the next map.")
             done = True
-            if map_compeleted > 1:
+            if map_completed > 1:
                 await agent.next_map(bot)  # Load next map
-                map_compeleted = 0
+                map_completed = 0
             reward = ((MAX_ACTION_COUNT * 2) - action_count)
-            score = -reward * 10
         elif bot.is_dead():
+            map_fail_counter += 1
             done = True
             pos = bot.get_position()
             dist = ((GOAL.z - pos.z) ** 2 + (GOAL.y - pos.y) ** 2)
-            reward = -500 - dist
-            score = -reward * 10
+            reward = -2000 - dist
         elif action_count > MAX_ACTION_COUNT:
             done = True
-            global map_fail_counter
             map_fail_counter += 1
-            if map_fail_counter >= 100:  # To prevent the bot from getting stuck on a map, we give him 100 tries to complete it, if it fails we go to the next map
-                agent.set_randomness(0)
-                await agent.next_map(bot)
             pos = bot.get_position()
-            reward = -((GOAL.z - pos.z) ** 2 + (GOAL.y - pos.y) ** 2)
-            score = -reward * 10
+            dist = ((GOAL.z - pos.z) ** 2 + (GOAL.y - pos.y) ** 2)
+            reward = -3000 - dist
         else:
             done = False
             pos = bot.get_position()
@@ -275,12 +279,11 @@ async def train():
 
             last_moves.append(reward)
             reward -= average
-
             # We punish the bot if it didn't move
             if last_position is not None and last_position.xzDistanceTo(
                     pos) < 0.31:
                 unmoved_positions += 1
-                reward -= 200
+                reward -= 500
                 if unmoved_positions == 6:
                     bot.reset(START_POS)
                     await asyncio.sleep(0.5)
@@ -294,10 +297,15 @@ async def train():
 
             if reward > 0:
                 reward = reward * (
-                        ACTION_COUNT - final_move) * 2  # a move with a larger index takes more time to complete, so we reward it less
+                        ACTION_COUNT - final_move) * 8  # a move with a larger index takes more time to complete, so we reward it less
 
         print(f"Reward={reward}, new_move={final_move} ")
         reward_array.append(reward)
+
+        if map_fail_counter >= 200:
+            agent.set_randomness(0.5)
+            map_fail_counter = 0
+            #await agent.next_map(bot)
         # train short memory
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
 
@@ -318,11 +326,11 @@ async def train():
                 agent.model.save()
 
             # score = sum(reward_array) / len(reward_array)
-
+            score = -reward
             if score > record:
                 record = score
             reward_array = []
-            print('Game', agent.n_games, 'Score', score, 'Record:', record)
+            print('Game', agent.n_games, 'Score', score, f'epsilon: {int(agent.epsilon[map_index] * 1000) * 1.0/10}%')
 
             plot_scores.append(score)
             total_score += score

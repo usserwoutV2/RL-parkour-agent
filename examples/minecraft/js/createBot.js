@@ -44,14 +44,33 @@ function plugin(bot) {
             "yaw": toNotchianYaw(rot === -1 ? 0 : Math.PI),
             "pitch": 0,
         };
-        if (bot.blockAt(new vec3_1.Vec3(args.x, args.y - 1, args.z).floored())?.name === 'air') {
-            args.z -= rot;
+        const v = new vec3_1.Vec3(args.x, args.y - 1, args.z).floored();
+        if (bot.blockAt(v)?.name === 'air') {
+            v.z -= rot;
+            if (bot.blockAt(v)?.name === 'air')
+                args.z += rot;
+            else
+                args.z -= rot;
         }
         return args;
     };
     bot.get_actual_position_floored = () => {
         const pos = bot.get_actual_position();
         return new vec3_1.Vec3(pos.x, pos.y, pos.z).floored();
+    };
+    let acked_time = {};
+    bot.wait = (ticks, id) => {
+        bot.waitForTicks(ticks).then(() => {
+            acked_time[id] = setInterval(() => {
+                // @ts-ignore
+                bot.emit("wait_complete");
+            }, 50);
+            // @ts-ignore
+            bot.emit("wait_complete");
+        });
+    };
+    bot.ackWait = (id) => {
+        clearInterval(acked_time[id]);
     };
     bot.move_to_middle = () => {
         let args = bot.get_actual_position();

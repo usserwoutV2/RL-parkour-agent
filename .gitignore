@@ -8,3 +8,4 @@
 *.log
 *.pyc
 playerdata/*.dat
+./examples/minecraft/learning_progress.png
