@@ -253,7 +253,7 @@ async def train():
             done = True
             pos = bot.get_position()
             dist = ((GOAL.z - pos.z) ** 2 + (GOAL.y - pos.y) ** 2)
-            reward = -2000 - dist
+            reward = -3000 - dist
         elif action_count > MAX_ACTION_COUNT:
             done = True
             map_fail_counter += 1
@@ -291,7 +291,7 @@ async def train():
 
             if reward > 0:
                 reward = reward * (
-                        ACTION_COUNT * 4 - bot.action_weight(final_move))   # some moves take more time than others
+                        ACTION_COUNT * 2 - bot.action_weight(final_move))   # some moves take more time than others
 
         print(f"Reward={reward}, new_move={final_move} ")
         reward_array.append(reward)

@@ -2,7 +2,7 @@ import {Bot} from "mineflayer";
 import vec3,{Vec3} from "vec3";
 import createRandomMap from "./createRandomMap";
 import mineflayer from "mineflayer";
-const {toNotchianYaw} = require('../../../venv/lib/python3.10/site-packages/javascript/js/node_modules/mineflayer/lib/conversions.js');
+const {toNotchianYaw} = require('../node_modules/mineflayer/lib/conversions.js');
 
 
 type BotExtentions = {

@@ -29,7 +29,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const vec3_1 = __importStar(require("vec3"));
 const createRandomMap_1 = __importDefault(require("./createRandomMap"));
 const mineflayer_1 = __importDefault(require("mineflayer"));
-const { toNotchianYaw } = require('../../../venv/lib/python3.10/site-packages/javascript/js/node_modules/mineflayer/lib/conversions.js');
+const { toNotchianYaw } = require('../node_modules/mineflayer/lib/conversions.js');
 function plugin(bot) {
     function get_rotation() {
         return Math.floor(bot.player.entity.yaw) === 0 ? -1 : 1;
