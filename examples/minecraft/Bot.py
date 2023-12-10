@@ -59,16 +59,16 @@ class Bot:
             return
         if action == 0:  # Forward
             self.bot.move_to_middle()
-            #await asyncio.sleep(0.3)
+            # await asyncio.sleep(0.3)
             self.wait_for_ticks(6)
             self.bot.setControlState("forward", True)
             self.bot.setControlState("sprint", True)
             self.wait_for_ticks(5)
-            #await asyncio.sleep(0.25)
+            # await asyncio.sleep(0.25)
             self.bot.clearControlStates()
             while self.bot.entity.velocity.z != 0 or not self.bot.entity.onGround:
                 self.wait_for_ticks(2)
-                #await asyncio.sleep(0.1)  # Wait until the bot is on the ground
+                # await asyncio.sleep(0.1)  # Wait until the bot is on the ground
         elif action == 1:
             self.bot.move_to_middle()
             self.wait_for_ticks(6)
@@ -176,3 +176,19 @@ class Bot:
         self.bot.wait(ticks, waitId)
         once(self.bot, "wait_complete")
         self.bot.ackWait(waitId)
+
+    # The lower the weight the fast the action is done
+    # We use this function to optimize the speed of the bot
+    def action_weight(self, action):
+        if action == 0:
+            return 1
+        elif action == 1:
+            return 0
+        elif action == 2:
+            return 5
+        elif action == 3:
+            return 3
+        elif action == 4:
+            return 2
+
+        return 0

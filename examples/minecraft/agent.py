@@ -24,7 +24,7 @@ SELECTED_MAP = ["random_parkour"] #["random_parkour"]  # [  "easy_stairs", "1_bl
 # "2_block_jumps_up"]  # Select the map you want to complete (see keys of parkour_maps.json)
 SAVE_LAST_N_MOVES = 1
 ACTION_COUNT = 5  # Amount of actions (jump, forward, backward, short jump)
-LOAD_MODEL = True  # whether to load the model from the model.pth file
+LOAD_MODEL = False  # whether to load the model from the model.pth file
 
 f = open('./parkour_maps.json')
 maps = json.load(f)
@@ -49,6 +49,7 @@ def print_bot_view(state):
                {bot_symbols[0]} {environment[0]} {environment[3]} {environment[4]}
                {bot_symbols[1]} {environment[1]} {environment[2]} {environment[5]}  {environment[10]}
                {empty_space} {environment[6]} {environment[7]} {environment[8]} {environment[11]}
+               {empty_space} {environment[12]} {environment[13]} {environment[14]} {environment[15]}
         """)
 
 
@@ -84,14 +85,14 @@ class Agent:
         #             24 25 26 27
         #
 
-        block_1 = bot.is_blockAt(pos.x, pos.y + 1, pos.z + r)  # 1
-        block_2 = bot.is_blockAt(pos.x, pos.y, pos.z + r)  # 2
+        block_1 = bot.is_blockAt(pos.x, pos.y + 1, pos.z + 1 * r)  # 1
+        block_2 = bot.is_blockAt(pos.x, pos.y, pos.z + 1 * r)  # 2
 
-        block_3 = bot.is_blockAt(pos.x, pos.y, pos.z + r * 2)  # 3
+        block_3 = bot.is_blockAt(pos.x, pos.y, pos.z + 2 * r)  # 3
         block_4 = bot.is_blockAt(pos.x, pos.y + 1, pos.z + 2 * r)  # 4
         block_5 = bot.is_blockAt(pos.x, pos.y + 1, pos.z + 3 * r)  # 5
         block_6 = bot.is_blockAt(pos.x, pos.y, pos.z + 3 * r)  # 6
-        block_7 = bot.is_blockAt(pos.x, pos.y - 1, pos.z + r)  # 7
+        block_7 = bot.is_blockAt(pos.x, pos.y - 1, pos.z + 1 * r)  # 7
         block_8 = bot.is_blockAt(pos.x, pos.y - 1, pos.z + 2 * r)  # 8
         block_9 = bot.is_blockAt(pos.x, pos.y - 1, pos.z + 3 * r)  # 9
         block_11 = bot.is_blockAt(pos.x, pos.y, pos.z + 4 * r)  # 11
@@ -212,7 +213,7 @@ class Agent:
 async def train():
     last_moves = deque(maxlen=SAVE_LAST_N_MOVES)
     last_position = None
-    plot_scores = deque(maxlen=25)
+    plot_scores = deque(maxlen=50)
     plot_mean_scores = []
     all_scores = []
     total_score = 0
@@ -254,7 +255,7 @@ async def train():
             if map_completed > 1:
                 await agent.next_map(bot)  # Load next map
                 map_completed = 0
-            reward = ((MAX_ACTION_COUNT * 2) - action_count)
+            reward = ((MAX_ACTION_COUNT * 2) - action_count) + 2000
         elif bot.is_dead():
             map_fail_counter += 1
             done = True
@@ -298,7 +299,7 @@ async def train():
 
             if reward > 0:
                 reward = reward * (
-                        ACTION_COUNT - final_move) * 8  # a move with a larger index takes more time to complete, so we reward it less
+                        ACTION_COUNT * 4 - bot.action_weight(final_move))   # some moves take more time than others
 
         print(f"Reward={reward}, new_move={final_move} ")
         reward_array.append(reward)
@@ -335,7 +336,7 @@ async def train():
 
 
             # remove last element of deque plot_scores and decrement total_score by that amount
-            if len(plot_scores) >= 25:
+            if len(plot_scores) >= 50:
                 total_score -= plot_scores.popleft()
             all_scores.append(score)
             plot_scores.append(score)
