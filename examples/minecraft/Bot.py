@@ -181,14 +181,14 @@ class Bot:
     # We use this function to optimize the speed of the bot
     def action_weight(self, action):
         if action == 0:
-            return 1
+            return 0
         elif action == 1:
             return 0
         elif action == 2:
-            return 5
+            return 1
         elif action == 3:
             return 3
         elif action == 4:
-            return 2
+            return 6
 
         return 0

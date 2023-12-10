@@ -46,10 +46,10 @@ def print_bot_view(state):
 
     # Prepare the visual representation
     print(f"""
-               {bot_symbols[0]} {environment[0]} {environment[3]} {environment[4]}
-               {bot_symbols[1]} {environment[1]} {environment[2]} {environment[5]}  {environment[10]}
-               {empty_space} {environment[6]} {environment[7]} {environment[8]} {environment[11]}
-               {empty_space} {environment[12]} {environment[13]} {environment[14]} {environment[15]}
+            |{bot_symbols[0]}|{environment[0]}|{environment[3]}|{environment[4]}|
+            |{bot_symbols[1]}|{environment[1]}|{environment[2]}|{environment[5]}|{environment[10]}|
+            |{empty_space}|{environment[6]}|{environment[7]}|{environment[8]}|{environment[11]}|
+            |{empty_space}|{environment[12]}|{environment[13]}|{environment[14]}|{environment[15]}|
         """)
 
 
@@ -62,7 +62,7 @@ class Agent:
             SELECTED_MAP)  # [80] * len(SELECTED_MAP) if LOAD_MODEL else [0] * len(SELECTED_MAP)  # randomness, the lower the more randomness
         self.gamma = 0.80  # discount rate. The value of gamma determines how far into the future the bot should "care" about. If it's too low the bot will mostly consider immediate rewards and thus might not learn beneficial long-term strategies. Try increasing gamma to see if that allows the bot to learn more complex strategies.
         # self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
-        self.model = Linear_QNet(17, 256, ACTION_COUNT)  #
+        self.model = Linear_QNet(17, 128, ACTION_COUNT)  #
         self.replay_memory = ExperienceReplay(MAX_MEMORY)  # Init ExperienceReplay
         if LOAD_MODEL:
             self.model.load()  # Load the model.pth file
@@ -157,14 +157,6 @@ class Agent:
         if self.replay_memory.can_provide_sample(BATCH_SIZE):  # If can provide sample
             states, actions, rewards, next_states, dones = self.replay_memory.sample(BATCH_SIZE)
             self.trainer.train_step(states, actions, rewards, next_states, dones)
-
-        # if len(self.memory) > BATCH_SIZE:
-        #    mini_sample = random.sample(self.memory, BATCH_SIZE)  # list of tuples
-        # else:
-        #    mini_sample = self.memory
-
-        # states, actions, rewards, next_states, dones = zip(*mini_sample)
-        # self.trainer.train_step(states, actions, rewards, next_states, dones)
 
     def train_short_memory(self, state, action, reward, next_state, done):
         # self.remember(state, action, reward, next_state, done)
