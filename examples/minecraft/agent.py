@@ -92,8 +92,8 @@ class Agent:
         block_5 = bot.is_blockAt(pos.x, pos.y + 1, pos.z + 3 * r)  # 5
         block_6 = bot.is_blockAt(pos.x, pos.y, pos.z + 3 * r)  # 6
         block_7 = bot.is_blockAt(pos.x, pos.y - 1, pos.z + r)  # 7
-        block_8 = bot.is_blockAt(pos.x, pos.y - 1, pos.z - 2 * r)  # 8
-        block_9 = bot.is_blockAt(pos.x, pos.y - 1, pos.z - 3 * r)  # 9
+        block_8 = bot.is_blockAt(pos.x, pos.y - 1, pos.z + 2 * r)  # 8
+        block_9 = bot.is_blockAt(pos.x, pos.y - 1, pos.z + 3 * r)  # 9
         block_11 = bot.is_blockAt(pos.x, pos.y, pos.z + 4 * r)  # 11
         block_12 = bot.is_blockAt(pos.x, pos.y - 1, pos.z + 4 * r)  # 12
         block_24 = bot.is_blockAt(pos.x, pos.y - 2, pos.z + 1 * r)  # 24
