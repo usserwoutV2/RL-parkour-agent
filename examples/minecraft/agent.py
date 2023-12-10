@@ -24,7 +24,7 @@ SELECTED_MAP = ["random_parkour"] #["random_parkour"]  # [  "easy_stairs", "1_bl
 # "2_block_jumps_up"]  # Select the map you want to complete (see keys of parkour_maps.json)
 SAVE_LAST_N_MOVES = 1
 ACTION_COUNT = 5  # Amount of actions (jump, forward, backward, short jump)
-LOAD_MODEL = False  # whether to load the model from the model.pth file
+LOAD_MODEL = True  # whether to load the model from the model.pth file
 
 f = open('./parkour_maps.json')
 maps = json.load(f)
@@ -212,8 +212,9 @@ class Agent:
 async def train():
     last_moves = deque(maxlen=SAVE_LAST_N_MOVES)
     last_position = None
-    plot_scores = []
-    plot_mean_scores = deque(maxlen=25)
+    plot_scores = deque(maxlen=25)
+    plot_mean_scores = []
+    all_scores = []
     total_score = 0
     unmoved_positions = 0  # How many times the bot didn't move in x-z direction, if it's higher than 3 we reset the bot (bcs it's most likely stuck)
     record = -100
@@ -332,11 +333,16 @@ async def train():
             reward_array = []
             print('Game', agent.n_games, 'Score', score, f'epsilon: {int(agent.epsilon[map_index] * 1000) * 1.0/10}%')
 
+
+            # remove last element of deque plot_scores and decrement total_score by that amount
+            if len(plot_scores) >= 25:
+                total_score -= plot_scores.popleft()
+            all_scores.append(score)
             plot_scores.append(score)
             total_score += score
             mean_score = total_score / agent.n_games
             plot_mean_scores.append(mean_score)
-            plot_old(plot_scores, plot_mean_scores)
+            plot_old(all_scores, plot_mean_scores)
             last_moves.clear()
             last_position = None
 
