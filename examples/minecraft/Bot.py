@@ -161,6 +161,7 @@ class Bot:
 
     def has_reached_goal(self, goal):
         # console.log("===>",self.bot.player.entity.position.distanceTo(goal))
+        if(self.bot.player is None): return False
         return self.bot.player.entity.position.distanceTo(goal) <= 1
 
     def is_on_ground(self):

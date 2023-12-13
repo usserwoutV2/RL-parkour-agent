@@ -8,7 +8,7 @@ current_dir = os.path.dirname(__file__)
 sys.path.append("../..")
 from src.parkour import parkour
 
-BOT_AMOUNT = 20
+BOT_AMOUNT = 15
 ACTION_TIME = 0.25  # seconds
 MAX_ACTION_COUNT = 30
 SELECTED_MAP = "short_parkour"  # Select the map you want to complete (see keys of parkour_maps.json)
@@ -26,7 +26,7 @@ async def main():
         client = Bot(f"bot_{i}", "", START_POS)
         clients.append(client.join())
     obj = {"clients": clients, "maxActionCount": MAX_ACTION_COUNT, "goal": GOAL}
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(1.5)
     parkour_generator = parkour(obj)
     await asyncio.sleep(3)
 
