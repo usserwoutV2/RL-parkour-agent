@@ -1,9 +1,6 @@
-from model import Linear_QNet, QTrainer
-from helper import plot
 from Bot import Bot, Vec3
 from time import sleep
 import asyncio
-import json
 
 JUMP_COUNT = 11
 ACTION_COUNT = 4
@@ -11,8 +8,9 @@ START_POS = Vec3(-8.5, 7, -20.5)
 
 
 def init():
-    bot = Bot(f"bot_RL", "", START_POS, actionCount=ACTION_COUNT)
+    bot = Bot(f"bot_RL", "", actionCount=ACTION_COUNT)
     bot.join()
+    bot.setStartPos(START_POS)
     sleep(3)
     bot.reset(START_POS)
     sleep(1)

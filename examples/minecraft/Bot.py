@@ -1,20 +1,27 @@
-from javascript import require, console, On, AsyncTask, once
+from javascript import require, console, On, once
 import math
 import numpy as np
 import asyncio
+import json
 
 createBot = require("./js/createBot.js")
 Vec3 = require("vec3").Vec3
 
 null_vector = Vec3(0, 0, 0)
-
+f = open('../../examples/minecraft/parkour_maps.json')
+maps = json.load(f)
+map_index = -1
+map_fail_counter = 0
+SELECTED_MAP = ["random_parkour"] #["random_parkour"]  # [  "easy_stairs", "1_block_jumps", "2_block_jumps", "1_block_jumps_up",
+START_POS = maps[str(SELECTED_MAP[map_index])]["start"]
+g = maps[str(SELECTED_MAP[map_index])]["goal"]
+GOAL = Vec3(g["x"], g["y"], g["z"])
 
 class Bot:
 
-    def __init__(self, username: str, host: str, pos, actionCount=3):
+    def __init__(self, username: str, host: str, actionCount=5):
         self.host = host
         self.username = username
-        self.pos = pos
         self.actionCount = actionCount  # forward, backward, jump, (long, middle, short jump)
         self.active = True  # if false, the bot will not do anything (eg when bot died)
 
@@ -141,7 +148,8 @@ class Bot:
 
     def reset(self, pos=None):
         if pos is None:
-            pos = self.pos
+            global START_POS
+            pos = START_POS
         self.bot.clearControlStates()
         self.active = True
         self.bot.chat(f'/tp {self.username} {pos["x"]} {pos["y"]} {pos["z"]}')
@@ -159,8 +167,9 @@ class Bot:
     def blockAt(self, x, y, z):
         return self.bot.blockAt(Vec3(x, y, z))
 
-    def has_reached_goal(self, goal):
-        # console.log("===>",self.bot.player.entity.position.distanceTo(goal))
+    def has_reached_goal(self, goal=None):
+        if goal is None:
+            goal = self.getGoal()
         if(self.bot.player is None): return False
         return self.bot.player.entity.position.distanceTo(goal) <= 1
 
@@ -193,3 +202,46 @@ class Bot:
             return 6
 
         return 0
+
+    async def next_map(self):
+        global map_index
+        global START_POS
+        global GOAL
+        global map_fail_counter
+        map_fail_counter = 0
+        map_index += 1
+        if map_index >= len(SELECTED_MAP):
+            map_index = 0
+        START_POS = maps[str(SELECTED_MAP[map_index])]["start"]
+        if SELECTED_MAP[map_index] == "random_parkour":
+            GOAL = self.bot.createParkourMap(10, START_POS).offset(0.5,1,0.5)
+            print(f"New goal: {GOAL}")
+            await asyncio.sleep(1)
+        elif isinstance(SELECTED_MAP[map_index],int):
+            GOAL = self.bot.createParkourMap(10, START_POS,SELECTED_MAP[map_index]).offset(0.5,1,0.5)
+            print(f"New goal: {GOAL}")
+            await asyncio.sleep(1)
+        else:
+            g = maps[SELECTED_MAP[map_index]]["goal"]
+            GOAL = Vec3(g["x"], g["y"], g["z"])
+
+    def getGoal(self):
+        global GOAL
+        return GOAL
+
+    def getStartPos(self):
+        global START_POS
+        return START_POS
+
+    def getMapIndex(self):
+        global map_index
+        return map_index
+
+    def getMapCount(self):
+        global SELECTED_MAP
+        return len(SELECTED_MAP)
+
+    def setStartPos(self,pos):
+        global START_POS
+        START_POS = pos
+        return START_POS
