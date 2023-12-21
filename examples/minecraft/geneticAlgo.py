@@ -23,7 +23,8 @@ GOAL = maps[SELECTED_MAP]["goal"]
 async def main():
     clients = []
     for i in range(BOT_AMOUNT):
-        client = Bot(f"bot_{i}", "", START_POS)
+        client = Bot(f"bot_{i}", "", actionCount=4)
+        client.setStartPos(START_POS)
         clients.append(client.join())
     obj = {"clients": clients, "maxActionCount": MAX_ACTION_COUNT, "goal": GOAL}
     await asyncio.sleep(1.5)
