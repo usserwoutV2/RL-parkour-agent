@@ -199,7 +199,7 @@ class Bot:
         elif action == 3:
             return 3
         elif action == 4:
-            return 6
+            return 5
 
         return 0
 
