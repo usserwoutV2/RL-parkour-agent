@@ -3,6 +3,7 @@
 
 This project is an AI-based bot designed to navigate and complete parkour maps in Minecraft. The bot uses reinforcement learning and genetic algorithms to improve its performance over time.
 
+
 ## Getting Started
 
 ### Prerequisites
